@@ -1,0 +1,78 @@
+{
+  "_id": "panes",
+  "locked": true,
+  "layout": [
+    { "i": "chart", "type": "chart", "x": 0, "y": 0, "w": 18, "h": 24 },
+    { "i": "prices", "type": "prices", "x": 18, "y": 0, "w": 6, "h": 24 }
+  ],
+  "panes": {
+    "chart": {
+      "id": "chart",
+      "name": "BTC",
+      "type": "chart",
+      "markets": [
+        "BINANCE_US:btcusd",
+        "BINANCE:btcusdt",
+        "BINANCE:btcusdc",
+        "BINANCE_US:btcusdt",
+        "BINANCE_US:btcusdc",
+        "BITFINEX:BTCUSD",
+        "BITSTAMP:btcusd",
+        "BITSTAMP:btcusdt",
+        "BITSTAMP:btcusdc",
+        "COINBASE:BTC-USD",
+        "COINBASE:BTC-USDT",
+        "COINBASE:BTC-USDC",
+        "FTX:BTC/USD",
+        "FTX:BTC/USDT",
+        "HITBTC:BTCUSDC",
+        "HITBTC:BTCUSD",
+        
+        "KRAKEN:XBT/USDC",
+        "KRAKEN:XBT/USDT",
+        "KRAKEN:XBT/USD",
+        "OKEX:BTC-USDT",
+        "OKEX:BTC-USDC",
+        "POLONIEX:USDT_BTC",
+        "POLONIEX:USDC_BTC"
+      ]
+    },
+    "prices": {
+      "id": "prices",
+      "name": "Game Panel",
+      "type": "prices",
+      "markets": [
+        "BINANCE_US:btcusd",
+        "BINANCE:btcusdt",
+        "BINANCE:btcusdc",
+        "BINANCE_US:btcusdt",
+        "BINANCE_US:btcusdc",
+        "BITFINEX:BTCUSD",
+        "BITSTAMP:btcusd",
+        "BITSTAMP:btcusdt",
+        "BITSTAMP:btcusdc",
+        "COINBASE:BTC-USD",
+        "COINBASE:BTC-USDT",
+        "COINBASE:BTC-USDC",
+        "FTX:BTC/USD",
+        "FTX:BTC/USDT",
+        "HITBTC:BTCUSDC",
+        "HITBTC:BTCUSD",
+        
+        "KRAKEN:XBT/USDC",
+        "KRAKEN:XBT/USDT",
+        "KRAKEN:XBT/USD",
+        "OKEX:BTC-USDT",
+        "OKEX:BTC-USDC",
+        "POLONIEX:USDT_BTC",
+        "POLONIEX:USDC_BTC"
+      ],
+      "close":0.0,
+      "guess":0,
+      "funds":1500,
+      "bet":250
+
+    }
+  },
+  "marketsListeners": {}
+}
