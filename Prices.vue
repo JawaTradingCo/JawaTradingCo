@@ -177,6 +177,7 @@ export default class extends Mixins(PaneMixin) {
         bet = $(this).val()
         bet = parseFloat(bet).toFixed(2);
     })
+    $(".pane-prices").find('.flex-grow-1').append('<a class="btn btn-success btn-sm float-end mt-1 me-2" href="http://node.jawatradingcompany.com/">Exit</a>')
     $('.btn-guess').on('click',function(e){
       $(".funds").removeClass("animate__bounce animate__flash");
       e.preventDefault();
