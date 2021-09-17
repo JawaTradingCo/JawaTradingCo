@@ -23,19 +23,19 @@
           </div>
           <div class="col-left text-center">
             <strong>Threshold (0.05%)</strong>
-            <div class="text-center price-threshold">place a bet</div>
+            <div class="text-center price-threshold" style="--animate-duration: 0.2s">wait...</div>
           </div>
           <div class="col-right text-right">
             <strong class="text-right d-block">Funds</strong>
-            <div class="funds text-success">{{ funds }}</div>
+            <div class="funds text-success animate__animated">${{ funds }}</div>
           </div>
           <div class="col-lg-12 mb-2">
               <div class="input-group">
 
                 <button type="button" class="btn btn-guess btn-danger guesslow" data-bs-placement="left" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-content="Guess Decline" >Guess ⬇</button>
                
-                <select class="form-select bet" name="bet"  :value="250" >
-                  <option  value="50">$50</option> <option  value="100">$100</option> <option  value="150">$150</option> <option  value="200">$200</option> <option selected value="250">$250</option> <option  value="300">$300</option> <option  value="350">$350</option> <option  value="400">$400</option> <option  value="450">$450</option> <option  value="500">$500</option></select>
+                <select class="form-select bet" name="bet"  >
+                  <option  value="50">$50</option> <option  value="100">$100</option> <option  value="150">$150</option> <option  value="200">$200</option> <option selected value="250">$250</option> <option  value="300">$300</option> <option  value="350">$350</option> <option  value="400">$400</option> <option  value="450">$450</option> <option  value="500">$500</option><option  value="1000">$1000</option></select>
                  <button type="button" class="btn btn-guess btn-success guesshigh" data-bs-placement="right" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-content="Guess Incline">Guess ⬆</button>
               </div>
               
@@ -45,7 +45,7 @@
         </div>
         <h1 class="text-center text-danger d-none gameover mb-2">GAME OVER</h1>
         <strong class="text-center d-block">History</strong>
-        <ul class="hide-scrollbar p-0 history"><li class="no-history text-center" style="list-style: none;color: #ffffff59;">pending bet</li></ul>
+        <ul class="hide-scrollbar p-0 history"><li class="no-history text-center" style="list-style: none;color: #ffffff59;">waiting for first bet result</li></ul>
         
       </div>
     </div>
@@ -57,7 +57,8 @@ import $ from 'jquery'
 import { Component, Mixins, Watch } from 'vue-property-decorator'
 
 import { formatPrice, parseMarket } from '../../utils/helpers'
-
+import workspacesService from '@/services/workspacesService'
+import dialogService from '@/services/dialogService'
 import aggregatorService from '@/services/aggregatorService'
 import PaneMixin from '@/mixins/paneMixin'
 import PaneHeader from '../panes/PaneHeader.vue'
@@ -66,12 +67,14 @@ import { Market } from '@/types/test'
 type MarketsBarMarketStatus = 'pending' | 'idle' | 'up' | 'down' | 'neutral'
 const lastTime = Math.floor(new Date().getTime() / 1000)
 let animateDuration = 0.5;
-let bet = 0;
+let bet = 250;
 let guess = 0;
+let polls = 0;
 let lastPrice = 0;
 let bettingRow = null;
 let store = null;
 let pid = null;
+let triggerOnce = false;
 @Component({
   components: { PaneHeader },
   name: 'Prices'
@@ -131,9 +134,16 @@ export default class extends Mixins(PaneMixin) {
   }
 
   get showPairs() {
-    store = this.$store;
-    pid = this.paneId;
-    //store.state[pid].funds = 1500.00;
+    if(!triggerOnce){
+      triggerOnce = true;
+      store = this.$store;
+      pid = this.paneId;
+      store.state[pid].funds = parseFloat(store.state[pid].funds).toFixed(2);
+      if(parseFloat(store.state[pid].funds).toFixed(2) <= 0){
+        this.resetAndReloadWithoutAsking();
+      }
+    }
+    
     return this.$store.state[this.paneId].showPairs
   }
 
@@ -152,11 +162,23 @@ export default class extends Mixins(PaneMixin) {
       return null
     }
   }
-
+  
   mounted() {
     aggregatorService.on('prices', this.updateExchangesPrices)
-
+    $(window).keypress(function(event) {
+      event.preventDefault();
+      
+      if (event.which == 32 ) {
+        $(".menu").show();
+      }
+      return false;
+      });
+    $("select.bet").on("change",function(){
+        bet = $(this).val()
+        bet = parseFloat(bet).toFixed(2);
+    })
     $('.btn-guess').on('click',function(e){
+      $(".funds").removeClass("animate__bounce animate__flash");
       e.preventDefault();
       const dateTime = new Date()
       let h = dateTime.getUTCHours()
@@ -168,10 +190,15 @@ export default class extends Mixins(PaneMixin) {
       if(!price || bettingRow){
         return true;
       }
-      bet = $('select.bet').val()
-      bet = parseFloat(bet).toFixed(2);
-
+      
+      console.log(bet + " > " + Number(store.state[pid].funds), Number(bet) > Number(store.state[pid].funds))
+      if(Number(bet) > Number(store.state[pid].funds)){
+        $(".funds").addClass("animate__bounce animate__flash");
+        return true;
+      }
+      polls = 0;
       store.state[pid].funds = store.state[pid].funds - bet;
+      $(".funds").addClass("animate__bounce animate__headShake");
       store.state[pid].funds = store.state[pid].funds.toFixed(2);
       if(s.toString().length == 1){
         s = "0"+s.toString()
@@ -194,6 +221,7 @@ export default class extends Mixins(PaneMixin) {
         string = 'Betting <span class="text-warning">$' + bet + '</span> on drop from <span class="text-info">$' + parseFloat(price).toFixed(2) + '</div>'
       }
       $(".input-group").css({opacity:.2})
+      $("select.bet").attr("disabled",true);
       $('.no-history').remove();
      
        bettingRow = $('<li style="--animate-duration: ' + animateDuration + 's" class="animate__animated animate__slideInLeft bg-secondary text-white trade  -level-0" ><div class="trade__side icon-side"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div></div><div class="trade__price">' + string + '</div><div class="trade__time -timestamp" timestamp="' + dateTime.getTime() + '">' + time + '</div></li>').prependTo($('.history'))
@@ -228,7 +256,8 @@ export default class extends Mixins(PaneMixin) {
         if (price === market.price) {
           continue
         }
-
+       
+        polls ++;
         let threshold = parseFloat(Math.abs(1 - (lastPrice / market.price)) * 100);
         const rawTime = new Date().getTime()
         const time = Math.floor(rawTime / 1000)
@@ -236,9 +265,10 @@ export default class extends Mixins(PaneMixin) {
         if(threshold == 'Infinity'){
           threshold = 0;
         }
+        $('.price-threshold').removeClass("animate__animated animate__pulse");
         if(threshold && lastPrice > 0){
-          threshold = parseFloat(threshold).toFixed(7)
-          $('.price-threshold').text(threshold);
+          threshold = parseFloat(threshold).toFixed(3)
+          $('.price-threshold').text(threshold).addClass('animate__animated animate__pulse');
         }
         if(lastPrice == 0){
           $('.price-threshold').text('place a bet');
@@ -247,6 +277,7 @@ export default class extends Mixins(PaneMixin) {
         if (!price) {
           market.status = 'pending'
           $('.close').text('-').attr('data-price',0);
+
         
         } else if (market.price > price) {
           market.status = 'down'
@@ -266,27 +297,40 @@ export default class extends Mixins(PaneMixin) {
         }
         if(threshold > 0.05 && bettingRow && (market.status == 'up' || market.status == 'down')){
           if(guess == 'up' && market.status == 'up'){
-            bettingRow.replaceWith($('<li style="--animate-duration: ' + animateDuration + 's" class="animate__animated animate__flash bg-success text-white trade -' + market.exchange + ' -buy -level-0" title="' + market.exchange + ':' + market.pair + '"><div class="trade__side icon-side"></div><div class="trade__exchange"></div><div class="trade__price">Bet on ' + guess+ ' : ' + lastPrice.toFixed(2) + ' &gt; ' + price.toFixed(2) + ' (' + threshold + ')</div><div class="trade__time -timestamp" timestamp="' + rawTime + '">Won $' + parseFloat(bet).toFixed(2) + '</div></li>'))
+            bettingRow.replaceWith($('<li style="--animate-duration: ' + animateDuration + 's" class="animate__animated animate__flash bg-success text-white trade -' + market.exchange + ' -buy -level-0" title="' + market.exchange + ':' + market.pair + '"><div class="trade__side icon-side"></div><div class="trade__exchange"></div><div class="trade__price">' + lastPrice.toFixed(2) + ' &gt; ' + price.toFixed(2) + ' (' + threshold + ' - ' + polls + ' polls)</div><div class="trade__time -timestamp" timestamp="' + rawTime + '">Won $' + parseFloat(bet).toFixed(2) + '</div></li>'))
                store.state[pid].funds = parseFloat(store.state[pid].funds) + parseFloat(bet) * 2;
                store.state[pid].funds = store.state[pid].funds.toFixed(2);
           } 
           if(guess == 'up' && market.status == 'down'){
-            bettingRow.replaceWith($('<li style="--animate-duration: ' + animateDuration + 's" class="animate__animated animate__flash bg-danger text-white trade -' + market.exchange + ' -buy -level-0" title="' + market.exchange + ':' + market.pair + '"><div class="trade__side icon-side"></div><div class="trade__exchange"></div><div class="trade__price">Bet on ' + guess+ ' : ' + lastPrice.toFixed(2) + ' &gt; ' + price.toFixed(2) + ' (' + threshold + ')</div><div class="trade__time -timestamp" timestamp="' + rawTime + '">Lost $' + parseFloat(bet).toFixed(2) + '</div></li>'))
+            bettingRow.replaceWith($('<li style="--animate-duration: ' + animateDuration + 's" class="animate__animated animate__flash bg-danger text-white trade -' + market.exchange + ' -buy -level-0" title="' + market.exchange + ':' + market.pair + '"><div class="trade__side icon-side"></div><div class="trade__exchange"></div><div class="trade__price">' + lastPrice.toFixed(2) + ' &gt; ' + price.toFixed(2) + ' (' + threshold + ' - ' + polls + ' polls)</div><div class="trade__time -timestamp" timestamp="' + rawTime + '">Lost $' + parseFloat(bet).toFixed(2) + '</div></li>'))
                
           } 
           if(guess == 'down' && market.status == 'down'){
-            bettingRow.replaceWith($('<li style="--animate-duration: ' + animateDuration + 's" class="animate__animated animate__flash bg-success text-white trade -' + market.exchange + ' -sell -level-0" title="' + market.exchange + ':' + market.pair + '"><div class="trade__side icon-side"></div><div class="trade__exchange"></div><div class="trade__price">Bet on ' + guess+ ' : ' + lastPrice.toFixed(2) + ' &gt; ' + price.toFixed(2) + ' (' + threshold + ')</div><div class="trade__time -timestamp" timestamp="' + rawTime + '">Won $' + parseFloat(bet).toFixed(2) + '</div></li>'))
+            bettingRow.replaceWith($('<li style="--animate-duration: ' + animateDuration + 's" class="animate__animated animate__flash bg-primary text-white trade -' + market.exchange + ' -sell -level-0" title="' + market.exchange + ':' + market.pair + '"><div class="trade__side icon-side"></div><div class="trade__exchange"></div><div class="trade__price">' + lastPrice.toFixed(2) + ' &gt; ' + price.toFixed(2) + ' (' + threshold + ' - ' + polls + ' polls)</div><div class="trade__time -timestamp" timestamp="' + rawTime + '">Won $' + parseFloat(bet).toFixed(2) + '</div></li>'))
               store.state[pid].funds = parseFloat(store.state[pid].funds) + parseFloat(bet) * 2;
               store.state[pid].funds = store.state[pid].funds.toFixed(2);
           } 
            if(guess == 'down' && market.status == 'up'){
-            bettingRow.replaceWith($('<li style="--animate-duration: ' + animateDuration + 's" class="animate__animated animate__flash bg-danger text-white trade -' + market.exchange + ' -sell -level-0" title="' + market.exchange + ':' + market.pair + '"><div class="trade__side icon-side"></div><div class="trade__exchange"></div><div class="trade__price">Bet on ' + guess+ ' : ' + lastPrice.toFixed(2) + ' &gt; ' + price.toFixed(2) + ' (' + threshold + ')</div><div class="trade__time -timestamp" timestamp="' + rawTime + '">Lost $' + parseFloat(bet).toFixed(2) + '</div></li>'))
+            bettingRow.replaceWith($('<li style="--animate-duration: ' + animateDuration + 's" class="animate__animated animate__flash bg-danger text-white trade -' + market.exchange + ' -sell -level-0" title="' + market.exchange + ':' + market.pair + '"><div class="trade__side icon-side"></div><div class="trade__exchange"></div><div class="trade__price">' + lastPrice.toFixed(2) + ' &gt; ' + price.toFixed(2) + ' (' + threshold + ' - ' + polls + ' polls)</div><div class="trade__time -timestamp" timestamp="' + rawTime + '">Lost $' + parseFloat(bet).toFixed(2) + '</div></li>'))
               
-          } 
+          }
+          $(".funds").removeClass("animate__bounce");
+          $(".funds").addClass("animate__bounce animate__heartBeat");
+          //$("select.bet").append('<option value="'+parseInt(store.state[pid].funds)+'">$'+parseInt(store.state[pid].funds)+'</option>')
           lastPrice = 0;
+          polls = 0;
           guess = null;
           bettingRow = null;
            $(".input-group").css({opacity:1})
+           $("select.bet").removeAttr("disabled");
+           if(store.state[pid].funds <= 0){
+             $(".gameover").removeClass('d-none');
+              $(".input-group").css({opacity:.2})
+              $(".input-group button").attr("disabled",true);
+              $("select.bet").attr("disabled",true);
+              $('.price-threshold').text('betting is closed');
+              this.resetAndReload()
+           }
         }
         if(animateDuration <= 0){
           animateDuration = 0.5
@@ -304,7 +348,28 @@ export default class extends Mixins(PaneMixin) {
       }
     }
   }
-
+  
+  async resetAndReload() {
+    const response = await dialogService.confirm({
+      title: 'Game Over',
+      message: 'Do you want to start a new game ?',
+      ok: 'Yes',
+      cancel: 'No'
+    })
+   
+    if (response === true) {
+      await workspacesService.removeWorkspace(window.location.pathname.replace(/\//,''));
+      window.location = window.location.origin+"/aggr/";
+    } else {
+      this.close(null)
+    }
+  }
+  async resetAndReloadWithoutAsking() {
+   
+      await workspacesService.removeWorkspace(window.location.pathname.replace(/\//,''));
+      window.location = window.location.origin+"/aggr/";
+    
+  }
   removeMarketFromList(market: string) {
     const index = this.markets.indexOf(this.markets.find(m => m.exchange + ':' + m.pair === market))
 
@@ -350,7 +415,9 @@ export default class extends Mixins(PaneMixin) {
       background-image: url('../../assets/exchanges/#{$exchange}.svg');
     }
   }
-
+  li.trade{
+    margin-top: 1px;
+  }
   .market {
     padding: 0.5em 0.5em 0.5em 2em;
     display: flex;
