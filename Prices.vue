@@ -36,10 +36,10 @@
         <h1 class="text-center text-danger d-none gameover mb-2">GAME OVER</h1>
         <strong class="text-center d-block d-none history-label mb-2">Wager History</strong>
         <ul class="hide-scrollbar p-0 history"></ul>
-        
+        <div class="alert alert-primary text-white bg-primary p-1 mx-0 text-center">To get started, wager high or low on the current price!</div> 
       </div>
     </div>
-    <div class="alert alert-warning p-1 mx-3 text-center">To get started, wager high or low on the current price</div> 
+    
     
      <transition-group v-if="markets" :name="transitionGroupName" tag="div" class="markets-bar condensed hide-scrollbar pane">
      
@@ -210,7 +210,7 @@ export default class extends Mixins(PaneMixin) {
       })
 
     $('.btn-guess').on('click',function(e){
-      $('.alert-warning').remove();
+      $('.alert-primary').remove();
       $(".funds").removeClass("animate__bounce animate__flash");
       e.preventDefault();
       const dateTime = new Date()
@@ -484,14 +484,15 @@ export default class extends Mixins(PaneMixin) {
     font-size: 16px;
     align-items: center;
     flex-grow: 0;
-    flex-shrink: 1;
-    flex-basis: 0;
+    flex-shrink: 0;
+    flex-basis: 200px;
     position: relative;
     line-height: 1;
     background-position: 0.5em;
     background-repeat: no-repeat;
     background-size: 1em;
     cursor: pointer;
+    margin: 1px;
 
     &__pair {
       white-space: nowrap;
